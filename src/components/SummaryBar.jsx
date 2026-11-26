@@ -1,17 +1,32 @@
 import React from 'react';
 
 /**
- * קומפוננטה להצגת סיכום נתונים.
- * שימו לב: הנתונים כאן לא נשמרים ב-State נפרד, אלא מחושבים ישירות
- * מתוך ה-Props (Derived State).
+ * סיכום נתונים. הנתונים אינם נשמרים ב-State נפרד, אלא מחושבים
+ * ישירות מתוך ה-Props (Derived State).
+ *
+ * הערה: אין במודל "מספר מקומות" (maxSpots), ולכן אין כאן
+ * "מקומות פנויים" או "קורסים מלאים". הסטטיסטיקות מוגבלות למה שאפשר לגזור.
  */
-export default function SummaryBar({ courses = [] }) {
+export default function SummaryBar({ courses = [], students = [], enrollments = [] }) {
+  const openCourses = courses.filter((course) => course.isOpen !== false).length;
+  const closedCourses = courses.length - openCourses;
+
+  const items = [
+    { label: 'קורסים', value: courses.length, tone: 'neutral' },
+    { label: 'פתוחים להרשמה', value: openCourses, tone: 'open' },
+    { label: 'סגורים להרשמה', value: closedCourses, tone: closedCourses > 0 ? 'closed' : 'neutral' },
+    { label: 'סטודנטים', value: students.length, tone: 'neutral' },
+    { label: 'הרשמות', value: enrollments.length, tone: 'neutral' }
+  ];
+
   return (
     <section className="summary-bar">
-      <div className="summary-card">
-        <span className="summary-number">{courses.length}</span>
-        <span className="summary-label">קורסים פעילים</span>
-      </div>
+      {items.map(({ label, value, tone }) => (
+        <div className={`summary-card summary-${tone}`} key={label}>
+          <span className="summary-number">{value}</span>
+          <span className="summary-label">{label}</span>
+        </div>
+      ))}
     </section>
   );
 }

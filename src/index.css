@@ -62,6 +62,37 @@ body {
   color: #52606d;
 }
 
+/* גוונים לסטטיסטיקות מצב */
+.summary-open {
+  border-color: #b7e4c7;
+  background-color: #f2fdf5;
+}
+
+.summary-open .summary-number {
+  color: #1f7a3e;
+}
+
+.summary-closed {
+  border-color: #feb2b2;
+  background-color: #fff5f5;
+}
+
+.summary-closed .summary-number {
+  color: #c53030;
+}
+
+/* תג מצב הנתונים בכותרת */
+.mode-badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background-color: #e6f2f4;
+  color: #10454f;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* Forms & Filters */
 .add-workshop-section {
   margin-bottom: 1.5rem;
@@ -143,26 +174,53 @@ body {
   color: #ffffff;
 }
 
-.btn-link-danger {
-  background: none;
-  border: none;
-  color: #c53030;
-  cursor: pointer;
+/* כפתורי פעולה צדדיים (בתוך כרטיסים) */
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
   font-size: 0.85rem;
   font-family: inherit;
-}
-
-.btn-link-muted {
-  background: none;
-  border: none;
-  color: #7b8794;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-family: inherit;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.btn-link-muted:hover {
+.btn-outline {
+  background-color: #ffffff;
+  border-color: #cbd2d9;
+  color: #334e68;
+}
+
+.btn-outline:hover {
+  background-color: #f0f4f8;
+  border-color: #10454f;
+  color: #10454f;
+}
+
+.btn-outline-danger {
+  background-color: #ffffff;
+  border-color: #feb2b2;
   color: #c53030;
+}
+
+.btn-outline-danger:hover {
+  background-color: #fff5f5;
+  border-color: #c53030;
+}
+
+.btn-sm:focus-visible {
+  outline: 2px solid #10454f;
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  opacity: 0.45;
 }
 
 /* Workshops Grid */
@@ -191,7 +249,19 @@ body {
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* קורס שההרשמה אליו סגורה — מוצג מעומעם */
+.workshop-card-closed {
+  background-color: #fafbfc;
+  border-style: dashed;
+}
+
+.workshop-card-closed .card-title {
+  color: #7b8794;
 }
 
 .category-badge {
@@ -273,10 +343,17 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   background: #f8fafc;
   padding: 0.35rem 0.6rem;
   border-radius: 6px;
   font-size: 0.9rem;
+}
+
+.participant-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .empty-text {
@@ -302,9 +379,11 @@ body {
 }
 
 .card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   border-top: 1px solid #edf2f7;
-  padding-top: 0.6rem;
-  text-align: left;
+  padding-top: 0.75rem;
 }
 
 /* States */
@@ -317,6 +396,11 @@ body {
   border-radius: 12px;
   color: #52606d;
   font-size: 1.05rem;
+}
+
+/* כשמצב "ריק" מוצג בתוך הגריד — שיתפרס על כל השורה */
+.workshops-grid > .empty-state {
+  grid-column: 1 / -1;
 }
 
 .error-banner {

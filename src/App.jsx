@@ -4,6 +4,7 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  setCourseOpen,
   fetchStudents,
   createStudent,
   updateStudent,
@@ -11,8 +12,22 @@ import {
   fetchEnrollments,
   createEnrollment,
   updateEnrollment,
-  deleteEnrollment
-} from './services/workshopsApi';
+  deleteEnrollment,
+  isLocalMode
+} from './services/dataSource';
+import { CATEGORIES, ALL_CATEGORIES } from './constants';
+import SummaryBar from './components/SummaryBar';
+import FilterBar from './components/FilterBar';
+import CourseCard from './components/CourseCard';
+import StudentCard from './components/StudentCard';
+import CourseModal from './components/CourseModal';
+import StudentModal from './components/StudentModal';
+import EnrollmentModal from './components/EnrollmentModal';
+
+const CLOSED_MODAL = { type: null, item: null, courseId: '' };
+
+/** קורס בלי isOpen (נתונים ישנים) נחשב פתוח */
+const isCourseOpen = (course) => course.isOpen !== false;
 
 export default function App() {
   const [students, setStudents] = useState([]);
@@ -21,17 +36,14 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-
-  const [courseForm, setCourseForm] = useState({ name: '', description: '' });
-  const [studentForm, setStudentForm] = useState({ name: '', age: '' });
-  const [enrollmentForm, setEnrollmentForm] = useState({ studentId: '', courseId: '' });
-  const [editingCourseId, setEditingCourseId] = useState(null);
-  const [editingStudentId, setEditingStudentId] = useState(null);
-  const [editingEnrollmentId, setEditingEnrollmentId] = useState(null);
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
-  const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
-  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
-  const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
+
+  // סינון קורסים
+  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES);
+  const [onlyOpen, setOnlyOpen] = useState(false);
+
+  // החלון הפתוח כרגע — מקום אחד לכל המודלים, במקום boolean לכל אחד
+  const [modal, setModal] = useState(CLOSED_MODAL);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,262 +71,260 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleSaveCourse = async (event) => {
-    event.preventDefault();
+  const closeModal = () => {
+    setModal(CLOSED_MODAL);
+    setStudentSearchTerm('');
+  };
+
+  // עוזר: מריץ בקשה, ומעדכן state רק אם השרת הצליח
+  async function runRequest(request, onSuccess) {
     try {
       setError('');
-      if (editingCourseId !== null) {
-        const updated = await updateCourse(editingCourseId, courseForm);
-        setCourses((previous) => previous.map((course) => course.id === editingCourseId ? updated : course));
-      } else {
-        const created = await createCourse(courseForm);
-        setCourses((previous) => [created, ...previous]);
-      }
-      setCourseForm({ name: '', description: '' });
-      setEditingCourseId(null);
-      setIsCourseModalOpen(false);
+      const result = await request();
+      onSuccess(result);
+      closeModal();
+      return true;
     } catch (requestError) {
       setError(requestError.message);
+      return false;
     }
-  };
+  }
 
-  const handleSaveStudent = async (event) => {
-    event.preventDefault();
-    try {
-      setError('');
-      const studentData = { name: studentForm.name, age: Number(studentForm.age) };
-      if (editingStudentId !== null) {
-        const updated = await updateStudent(editingStudentId, studentData);
-        setStudents((previous) => previous.map((student) => student.id === editingStudentId ? updated : student));
-      } else {
-        const created = await createStudent(studentData);
-        setStudents((previous) => [created, ...previous]);
+  const confirmAction = (message) => window.confirm(message);
+
+  const replaceCourse = (courseId, updated) =>
+    setCourses((previous) => previous.map((course) => (course.id === courseId ? updated : course)));
+
+  const handleSaveCourse = (courseData) => {
+    const isEditing = modal.type === 'course-edit';
+    return runRequest(
+      () => (isEditing ? updateCourse(modal.item.id, courseData) : createCourse(courseData)),
+      (saved) => {
+        if (isEditing) {
+          replaceCourse(modal.item.id, saved);
+        } else {
+          setCourses((previous) => [saved, ...previous]);
+        }
       }
-      setStudentForm({ name: '', age: '' });
-      setEditingStudentId(null);
-      setIsStudentModalOpen(false);
-    } catch (requestError) {
-      setError(requestError.message);
-    }
+    );
   };
 
-  const handleSaveEnrollment = async (event) => {
-    event.preventDefault();
-    if (!enrollmentForm.studentId || !enrollmentForm.courseId) return;
-
-    try {
-      setError('');
-      const data = {
-        studentId: Number(enrollmentForm.studentId),
-        courseId: Number(enrollmentForm.courseId)
-      };
-
-      if (editingEnrollmentId !== null) {
-        const updated = await updateEnrollment(editingEnrollmentId, data);
-        setEnrollments((previous) => previous.map((item) => item.id === editingEnrollmentId ? updated : item));
-      } else {
-        const created = await createEnrollment(data);
-        setEnrollments((previous) => [created, ...previous]);
+  const handleSaveStudent = (studentData) => {
+    const isEditing = modal.type === 'student-edit';
+    return runRequest(
+      () => (isEditing ? updateStudent(modal.item.id, studentData) : createStudent(studentData)),
+      (saved) => {
+        setStudents((previous) => (isEditing
+          ? previous.map((student) => (student.id === modal.item.id ? saved : student))
+          : [saved, ...previous]));
       }
-      setEnrollmentForm({ studentId: '', courseId: '' });
-      setStudentSearchTerm('');
-      setEditingEnrollmentId(null);
-      setIsEnrollmentModalOpen(false);
-    } catch (requestError) {
-      setError(requestError.message);
+    );
+  };
+
+  const handleSaveEnrollment = (enrollmentData) => {
+    const isEditing = modal.type === 'enrollment-edit';
+
+    // מניעת הרשמה כפולה לאותו קורס
+    const alreadyExists = enrollments.some((item) =>
+      item.studentId === enrollmentData.studentId &&
+      item.courseId === enrollmentData.courseId &&
+      (!isEditing || item.id !== modal.item.id)
+    );
+    if (alreadyExists) {
+      setError('הסטודנט כבר רשום לקורס זה.');
+      return false;
     }
+
+    // מניעת הרשמה לקורס שההרשמה אליו סגורה
+    const targetCourse = courses.find((course) => course.id === enrollmentData.courseId);
+    if (targetCourse && !isCourseOpen(targetCourse)) {
+      setError('ההרשמה לקורס זה סגורה.');
+      return false;
+    }
+
+    return runRequest(
+      () => (isEditing ? updateEnrollment(modal.item.id, enrollmentData) : createEnrollment(enrollmentData)),
+      (saved) => {
+        setEnrollments((previous) => (isEditing
+          ? previous.map((item) => (item.id === modal.item.id ? saved : item))
+          : [saved, ...previous]));
+      }
+    );
   };
 
-  const handleDeleteCourse = async (courseId) => {
-    try {
-      await deleteCourse(courseId);
-      setCourses((previous) => previous.filter((course) => course.id !== courseId));
-    } catch (requestError) { setError(requestError.message); }
+  const handleToggleCourseOpen = (course) => {
+    const nextOpen = !isCourseOpen(course);
+    const message = nextOpen
+      ? `לפתוח את ההרשמה לקורס "${course.name}"?`
+      : `לסגור את ההרשמה לקורס "${course.name}"? סטודנטים חדשים לא יוכלו להירשם.`;
+    if (!confirmAction(message)) return;
+
+    runRequest(
+      () => setCourseOpen(course.id, nextOpen),
+      (saved) => replaceCourse(course.id, saved)
+    );
   };
 
-  const handleDeleteStudent = async (studentId) => {
-    try {
-      await deleteStudent(studentId);
-      setStudents((previous) => previous.filter((student) => student.id !== studentId));
-    } catch (requestError) { setError(requestError.message); }
+  const handleDeleteCourse = (courseId) => {
+    if (!confirmAction('למחוק את הקורס? כל ההרשמות אליו יימחקו גם כן.')) return;
+    runRequest(
+      () => deleteCourse(courseId),
+      () => {
+        setCourses((previous) => previous.filter((course) => course.id !== courseId));
+        // רשימת ההרשמות המקומית צריכה להתעדכן בהתאם
+        setEnrollments((previous) => previous.filter((item) => item.courseId !== courseId));
+      }
+    );
   };
 
-  const handleDeleteEnrollment = async (enrollmentId) => {
-    try {
-      await deleteEnrollment(enrollmentId);
-      setEnrollments((previous) => previous.filter((item) => item.id !== enrollmentId));
-    } catch (requestError) { setError(requestError.message); }
+  const handleDeleteStudent = (studentId) => {
+    if (!confirmAction('למחוק את הסטודנט?')) return;
+    runRequest(
+      () => deleteStudent(studentId),
+      () => {
+        setStudents((previous) => previous.filter((student) => student.id !== studentId));
+        setEnrollments((previous) => previous.filter((item) => item.studentId !== studentId));
+      }
+    );
+  };
+
+  const handleDeleteEnrollment = (enrollmentId) => {
+    if (!confirmAction('להסיר את הסטודנט מהקורס?')) return;
+    runRequest(
+      () => deleteEnrollment(enrollmentId),
+      () => setEnrollments((previous) => previous.filter((item) => item.id !== enrollmentId))
+    );
   };
 
   const term = searchTerm.trim().toLowerCase();
   const studentTerm = studentSearchTerm.trim().toLowerCase();
+
+  // חיפוש לפי שם קורס או תיאור, וסינון לפי קטגוריה וזמינות
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch = !term
+      || course.name.toLowerCase().includes(term)
+      || course.description.toLowerCase().includes(term);
+    const matchesCategory =
+      selectedCategory === ALL_CATEGORIES || (course.category ?? CATEGORIES[0]) === selectedCategory;
+    const matchesAvailability = !onlyOpen || isCourseOpen(course);
+
+    return matchesSearch && matchesCategory && matchesAvailability;
+  });
+
   const filteredStudents = students.filter((student) =>
     !studentTerm || student.name.toLowerCase().includes(studentTerm)
   );
-  const filteredCourses = courses.filter((course) =>
-    !term || course.name.toLowerCase().includes(term) || course.description.toLowerCase().includes(term)
-  );
+
+  // נרשמים לכל קורס — מחושב, לא נשמר ב-State
+  const registeredByCourse = (courseId) =>
+    enrollments
+      .filter((item) => item.courseId === courseId)
+      .map((item) => ({ enrollment: item, student: students.find((s) => s.id === item.studentId) }))
+      .filter((item) => item.student);
 
   return (
     <div className="app-container">
       <header className="app-header">
         <h1>ניהול קורסים, סטודנטים והרשמות</h1>
-       
+        <p className="mode-badge">
+          מצב נתונים: {isLocalMode ? 'מקומי (זיכרון הדפדפן)' : 'שרת API'}
+        </p>
       </header>
 
       {error && <div className="error-banner">{error}</div>}
 
-      {isLoading ? <div className="loading-state">טוען נתונים מהשרת...</div> : (
+      {isLoading ? <div className="loading-state">טוען נתונים...</div> : (
         <>
           <div className="action-buttons">
-            <button type="button" className="btn btn-primary" onClick={() => {
-              setEditingCourseId(null);
-              setCourseForm({ name: '', description: '' });
-              setIsCourseModalOpen(true);
-            }}>הוספת קורס</button>
-
-            <button type="button" className="btn btn-primary" onClick={() => {
-              setEditingStudentId(null);
-              setStudentForm({ name: '', age: '' });
-              setIsStudentModalOpen(true);
-            }}>הוספת סטודנט</button>
-
-            <button type="button" className="btn btn-primary" onClick={() => {
-              setEditingEnrollmentId(null);
-              setEnrollmentForm({ studentId: '', courseId: '' });
-              setStudentSearchTerm('');
-              setIsEnrollmentModalOpen(true);
-            }}>הרשמת סטודנט לקורס</button>
+            <button type="button" className="btn btn-primary"
+              onClick={() => setModal({ type: 'course-create', item: null, courseId: '' })}>
+              הוספת קורס
+            </button>
+            <button type="button" className="btn btn-primary"
+              onClick={() => setModal({ type: 'student-create', item: null, courseId: '' })}>
+              הוספת סטודנט
+            </button>
+            <button type="button" className="btn btn-primary"
+              onClick={() => setModal({ type: 'enrollment-create', item: null, courseId: '' })}>
+              הרשמת סטודנט לקורס
+            </button>
           </div>
 
-          {isCourseModalOpen && (
-            <div className="modal-backdrop" role="dialog" aria-modal="true">
-              <div className="modal-card">
-                <button type="button" className="modal-close" onClick={() => setIsCourseModalOpen(false)}>×</button>
-                <h3>{editingCourseId !== null ? 'עריכת קורס' : 'הוספת קורס'}</h3>
-                <form className="form-grid" onSubmit={handleSaveCourse}>
-                  <input className="input-field" placeholder="שם הקורס" value={courseForm.name} onChange={(event) => setCourseForm({ ...courseForm, name: event.target.value })} required />
-                  <input className="input-field" placeholder="תיאור הקורס" value={courseForm.description} onChange={(event) => setCourseForm({ ...courseForm, description: event.target.value })} required />
-                  <button className="btn btn-success" type="submit">{editingCourseId !== null ? 'עדכון קורס' : 'הוספת קורס'}</button>
-                </form>
-              </div>
-            </div>
+          <SummaryBar courses={courses} students={students} enrollments={enrollments} />
+
+          {(modal.type === 'course-create' || modal.type === 'course-edit') && (
+            <CourseModal
+              initialCourse={modal.type === 'course-edit' ? modal.item : null}
+              onSave={handleSaveCourse}
+              onClose={closeModal}
+            />
           )}
 
-          {isStudentModalOpen && (
-            <div className="modal-backdrop" role="dialog" aria-modal="true">
-              <div className="modal-card">
-                <button type="button" className="modal-close" onClick={() => setIsStudentModalOpen(false)}>×</button>
-                <h3>{editingStudentId !== null ? 'עריכת סטודנט' : 'הוספת סטודנט'}</h3>
-                <form className="form-grid" onSubmit={handleSaveStudent}>
-                  <input className="input-field" placeholder="שם הסטודנט" value={studentForm.name} onChange={(event) => setStudentForm({ ...studentForm, name: event.target.value })} required />
-                  <input className="input-field" type="number" min="1" placeholder="גיל" value={studentForm.age} onChange={(event) => setStudentForm({ ...studentForm, age: event.target.value })} required />
-                  <button className="btn btn-success" type="submit">{editingStudentId !== null ? 'עדכון סטודנט' : 'הוספת סטודנט'}</button>
-                </form>
-              </div>
-            </div>
+          {(modal.type === 'student-create' || modal.type === 'student-edit') && (
+            <StudentModal
+              initialStudent={modal.type === 'student-edit' ? modal.item : null}
+              onSave={handleSaveStudent}
+              onClose={closeModal}
+            />
           )}
 
-          {isEnrollmentModalOpen && (
-            <div className="modal-backdrop" role="dialog" aria-modal="true">
-              <div className="modal-card">
-                <button type="button" className="modal-close" onClick={() => setIsEnrollmentModalOpen(false)}>×</button>
-                <h3>{editingEnrollmentId !== null ? 'עריכת הרשמה' : 'הרשמת סטודנט לקורס'}</h3>
-                <form className="form-grid" onSubmit={handleSaveEnrollment}>
-                  <div>
-                    <input
-                      className="input-field"
-                      type="search"
-                      placeholder="חיפוש סטודנט לפי שם..."
-                      value={studentSearchTerm}
-                      onChange={(event) => setStudentSearchTerm(event.target.value)}
-                    />
-                    <select
-                      className="input-field"
-                      value={enrollmentForm.studentId}
-                      onChange={(event) => setEnrollmentForm({ ...enrollmentForm, studentId: event.target.value })}
-                      required
-                    >
-                      <option value="">בחרי סטודנט</option>
-                      {filteredStudents.map((student) => (
-                        <option key={student.id} value={student.id}>{student.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <select className="input-field" value={enrollmentForm.courseId} onChange={(event) => setEnrollmentForm({ ...enrollmentForm, courseId: event.target.value })} required>
-                    <option value="">בחרי קורס</option>
-                    {courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
-                  </select>
-                  <button className="btn btn-success" type="submit">{editingEnrollmentId !== null ? 'עדכון הרשמה' : 'הוספת הרשמה'}</button>
-                </form>
-              </div>
-            </div>
+          {(modal.type === 'enrollment-create' || modal.type === 'enrollment-edit') && (
+            <EnrollmentModal
+              initialEnrollment={modal.type === 'enrollment-edit' ? modal.item : null}
+              initialCourseId={modal.courseId}
+              students={students}
+              courses={courses}
+              onSave={handleSaveEnrollment}
+              onClose={closeModal}
+            />
           )}
-
-          <div className="filter-bar">
-            <input className="input-field" placeholder="חיפוש קורסים..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
-          </div>
 
           <h2>קורסים וסטודנטים רשומים</h2>
+          <FilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            placeholder="חיפוש לפי שם קורס או תיאור..."
+            categories={[ALL_CATEGORIES, ...CATEGORIES]}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            onlyOpen={onlyOpen}
+            onOnlyOpenChange={setOnlyOpen}
+          />
           <main className="workshops-grid">
-            {filteredCourses.map((course) => {
-              const registered = enrollments
-                .filter((item) => item.courseId === course.id)
-                .map((item) => ({ enrollment: item, student: students.find((student) => student.id === item.studentId) }))
-                .filter((item) => item.student);
-
-              return (
-                <article className="workshop-card" key={course.id}>
-                  <h3 className="card-title">{course.name}</h3>
-                  <p className="card-instructor">{course.description}</p>
-                  <div className="card-footer">
-                    <button className="btn-link-muted" type="button" onClick={() => {
-                      setEditingCourseId(course.id);
-                      setCourseForm({ name: course.name, description: course.description });
-                      setIsCourseModalOpen(true);
-                    }}>עריכה</button>
-                    <button className="btn-link-muted" type="button" onClick={() => {
-                      setEditingEnrollmentId(null);
-                      setEnrollmentForm({ studentId: '', courseId: String(course.id) });
-                      setStudentSearchTerm('');
-                      setIsEnrollmentModalOpen(true);
-                    }}>הוספת סטודנט לקורס</button>
-                    <button className="btn-link-danger" type="button" onClick={() => handleDeleteCourse(course.id)}>מחיקה</button>
-                  </div>
-                  <h4>סטודנטים ({registered.length})</h4>
-                  {registered.length === 0 ? <p className="empty-text">אין רשומים.</p> : (
-                    <ul className="participants-list">
-                      {registered.map(({ enrollment, student }) => (
-                        <li className="participant-item" key={enrollment.id}>
-                          <span>{student.name}</span>
-                          <span>
-                            <button className="btn-link-muted" type="button" onClick={() => { setEditingEnrollmentId(enrollment.id); setEnrollmentForm({ studentId: String(enrollment.studentId), courseId: String(enrollment.courseId) }); }}>עריכה</button>
-                            <button className="btn-link-danger" type="button" onClick={() => handleDeleteEnrollment(enrollment.id)}>הסר</button>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-              );
-            })}
+            {filteredCourses.length === 0 ? (
+              <div className="empty-state">לא נמצאו קורסים להצגה.</div>
+            ) : (
+              filteredCourses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  registered={registeredByCourse(course.id)}
+                  onEdit={(selected) => setModal({ type: 'course-edit', item: selected, courseId: '' })}
+                  onAddStudent={(selected) => setModal({ type: 'enrollment-create', item: null, courseId: selected.id })}
+                  onDelete={handleDeleteCourse}
+                  onToggleOpen={handleToggleCourseOpen}
+                  onEditEnrollment={(enrollment) => setModal({ type: 'enrollment-edit', item: enrollment, courseId: '' })}
+                  onRemoveEnrollment={handleDeleteEnrollment}
+                />
+              ))
+            )}
           </main>
 
           <h2>כל הסטודנטים</h2>
+          <FilterBar
+            searchTerm={studentSearchTerm}
+            onSearchChange={setStudentSearchTerm}
+            placeholder="חיפוש סטודנט לפי שם..."
+          />
           <main className="workshops-grid">
-            {students.map((student) => (
-              <article className="workshop-card" key={student.id}>
-                <h3 className="card-title">{student.name}</h3>
-                <p className="card-instructor">גיל: {student.age}</p>
-                <div className="card-footer">
-                  <button className="btn-link-muted" type="button" onClick={() => {
-                    setEditingStudentId(student.id);
-                    setStudentForm({ name: student.name, age: String(student.age) });
-                    setIsStudentModalOpen(true);
-                  }}>עריכה</button>
-                  <button className="btn-link-danger" type="button" onClick={() => handleDeleteStudent(student.id)}>מחיקה</button>
-                </div>
-              </article>
+            {filteredStudents.map((student) => (
+              <StudentCard
+                key={student.id}
+                student={student}
+                coursesCount={enrollments.filter((item) => item.studentId === student.id).length}
+                onEdit={(selected) => setModal({ type: 'student-edit', item: selected, courseId: '' })}
+                onDelete={handleDeleteStudent}
+              />
             ))}
           </main>
         </>
