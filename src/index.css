@@ -1,0 +1,379 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f7f8;
+  color: #1f2933;
+  line-height: 1.5;
+  direction: rtl;
+}
+
+.app-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  color: #10454f;
+  margin-bottom: 0.4rem;
+}
+
+.app-header p {
+  color: #52606d;
+}
+
+/* Summary Bar */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  padding: 1.1rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(16, 69, 79, 0.05);
+}
+
+.summary-number {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #10454f;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  color: #52606d;
+}
+
+/* Forms & Filters */
+.add-workshop-section {
+  margin-bottom: 1.5rem;
+}
+
+.workshop-form {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-field {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #cbd2d9;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  flex: 1;
+  min-width: 160px;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #10454f;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background-color: #10454f;
+  color: #ffffff;
+}
+
+.btn-success {
+  background-color: #2f7d65;
+  color: #ffffff;
+}
+
+.btn-link-danger {
+  background: none;
+  border: none;
+  color: #c53030;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.btn-link-muted {
+  background: none;
+  border: none;
+  color: #7b8794;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.btn-link-muted:hover {
+  color: #c53030;
+}
+
+/* Workshops Grid */
+.workshops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.workshop-card {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 3px 10px rgba(16, 69, 79, 0.06);
+}
+
+.workshop-card-full {
+  border-color: #e2e8f0;
+  background-color: #fafbfc;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-badge {
+  background-color: #e6f2f4;
+  color: #10454f;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.status-open {
+  background-color: #e3f9e5;
+  color: #1f7a3e;
+}
+
+.status-full {
+  background-color: #ffe3e3;
+  color: #ab091e;
+}
+
+.card-title {
+  font-size: 1.15rem;
+  color: #102a43;
+}
+
+.card-instructor {
+  font-size: 0.9rem;
+  color: #52606d;
+}
+
+/* Progress */
+.progress-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #e4e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #10454f;
+  transition: width 0.25s ease;
+}
+
+.progress-text {
+  font-size: 0.82rem;
+  color: #52606d;
+}
+
+/* Participants */
+.participants-section h4 {
+  font-size: 0.9rem;
+  color: #334e68;
+  margin-bottom: 0.4rem;
+}
+
+.participants-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.participant-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.empty-text {
+  font-size: 0.88rem;
+  color: #7b8794;
+}
+
+.register-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.full-notice {
+  text-align: center;
+  padding: 0.55rem;
+  background: #f0f4f8;
+  color: #627d98;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: auto;
+}
+
+.card-footer {
+  border-top: 1px solid #edf2f7;
+  padding-top: 0.6rem;
+  text-align: left;
+}
+
+/* States */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 2.5rem;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  color: #52606d;
+  font-size: 1.05rem;
+}
+
+.error-banner {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #9b2c2c;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.modal-card {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.modal-card h3 {
+  margin-bottom: 1rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #edf2f7;
+  color: #334e68;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.modal-card .form-grid {
+  grid-template-columns: 1fr;
+}
